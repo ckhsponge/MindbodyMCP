@@ -293,6 +293,82 @@ export async function substituteClassTeacherTool(
   }
 }
 
+// Get class visits
+export async function getClassVisitsTool(
+  classId: number,
+  lastModifiedDate?: string,
+  useSiteSettingsStaffName?: boolean
+): Promise<{
+  classInfo: {
+    id: number;
+    name: string;
+    instructor: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+  };
+  visits: Array<{
+    id: number;
+    clientId: string;
+    clientName: string;
+    signedIn: boolean;
+    makeUp: boolean;
+    service: string;
+    visitType: string;
+    appointmentStatus: string;
+    signInDateTime?: string;
+  }>;
+  summary: {
+    totalVisits: number;
+    signedInCount: number;
+    noShowCount: number;
+    makeUpCount: number;
+  };
+}> {
+  const params: any = {
+    classID: classId,
+    useSiteSettingsStaffName: useSiteSettingsStaffName,
+  };
+
+  if (lastModifiedDate) {
+    params.lastModifiedDate = lastModifiedDate;
+  }
+
+  const response = await mindbodyClient.get<any>('/class/classvisits', {
+    params,
+  });
+
+  const classInfo = {
+    id: response.Class.Id,
+    name: response.Class.ClassDescription?.Name || '',
+    instructor: response.Class.Staff?.DisplayName || `${response.Class.Staff?.FirstName || ''} ${response.Class.Staff?.LastName || ''}`.trim() || '',
+    startTime: response.Class.StartDateTime,
+    endTime: response.Class.EndDateTime,
+    location: response.Class.Location?.Name || '',
+  };
+
+  const visits = response.Class.Visits.map((visit: any) => ({
+    id: visit.Id,
+    clientId: visit.ClientId,
+    clientName: visit.ClientName,
+    signedIn: visit.SignedIn,
+    makeUp: visit.MakeUp,
+    service: visit.Service?.Name || '',
+    visitType: visit.VisitType,
+    appointmentStatus: visit.AppointmentStatus,
+    signInDateTime: visit.SignInDateTime,
+  }));
+
+  const summary = {
+    totalVisits: visits.length,
+    signedInCount: visits.filter(v => v.signedIn).length,
+    noShowCount: visits.filter(v => v.appointmentStatus === 'NoShow').length,
+    makeUpCount: visits.filter(v => v.makeUp).length,
+  };
+
+  return { classInfo, visits, summary };
+}
+
 // Get class schedules
 export async function getClassSchedulesTool(
   locationIds?: number[],
