@@ -348,6 +348,14 @@ export async function getClassVisitsTool(
   classId: number,
   lastModifiedDate?: string
 ): Promise<{
+  classInfo: {
+    id: number;
+    name: string;
+    instructor: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+  };
   visits: Array<{
     id: number;
     classId: number;
@@ -383,7 +391,16 @@ export async function getClassVisitsTool(
     },
   });
 
-  const visits = (response.Visits || []).map((visit: any) => ({
+  const classInfo = {
+    id: response.Class?.Id || classId,
+    name: response.Class?.ClassDescription?.Name || '',
+    instructor: response.Class?.Staff?.DisplayName || `${response.Class?.Staff?.FirstName || ''} ${response.Class?.Staff?.LastName || ''}`.trim() || '',
+    startTime: response.Class?.StartDateTime,
+    endTime: response.Class?.EndDateTime,
+    location: response.Class?.Location?.Name || '',
+  };
+
+  const visits = (response.Class?.Visits || []).map((visit: any) => ({
     id: visit.Id,
     classId: visit.ClassId || classId,
     clientId: visit.ClientId,
@@ -412,6 +429,7 @@ export async function getClassVisitsTool(
   };
 
   return {
+    classInfo,
     visits,
     totalVisits: visits.length,
     summary,
